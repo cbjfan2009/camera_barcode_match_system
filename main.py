@@ -34,14 +34,15 @@
 # (XS cameras are not supported)
 #-------------------------------------------------------------------------------------------------------------------"""
 
+import cv2
+import numpy as np
 # Libraries
 from pyueye import ueye
-import numpy as np
-import cv2
 from pyzbar.pyzbar import decode
-import sys
+import pytesseract
 
-# ------------------------------------------------------------------------------------------------------------------
+# Mention the installed location of Tesseract-OCR in your system
+pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
 # Variables
 hCam = ueye.HIDS(0)  # 0: first available camera;  1-254: The camera with the specified camera ID
@@ -194,6 +195,7 @@ while nRet == ueye.IS_SUCCESS:
 
     # ...reshape it in an numpy array...
     frame = np.reshape(array, (height.value, width.value, bytes_per_pixel))
+    image4tesseract = frame.copy()
 
     # ...resize the image by a half
     frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
@@ -256,6 +258,10 @@ while nRet == ueye.IS_SUCCESS:
                     mailBase.pop(0)  # this is where the check for match occurs
                     mailBase.append(accum_dump)
                     print(mailBase, '\n next scan \n')
+
+    ocr_text = pytesseract.image_to_string(frame)
+    # print(ocr_text)  # anything tesseract detects gets printed!
+
 
     # ---------------------------------------------------------------------------------------------------------------------
 
