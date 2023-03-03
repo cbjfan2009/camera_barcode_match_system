@@ -1,1 +1,3 @@
-Attempts to make a barcode scanner using Ueye camera (and maybe later adding an actual barcode scanner).
+My attempt to make a barcode scanner using IDS Systems Ueye camera, OpenCV, and
+
+Requires the manual installation of IDS Software Suite (this will include the drivers for the camera).

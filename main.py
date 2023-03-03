@@ -167,13 +167,20 @@ else:
     print("Press q to leave the program")
 
 # ---------------------------------------------------------------------------------------------------------------------
-# create inserter list - base has 15 positions, accumulator has 4
-# accumulator = [None for x in range(4)]
-# mailBase = [0 for x in range(16)]
+# create inserter and feeder lists - base has 15 positions, accumulator has 4
 accumulator = []
 mailBase = []
 print("accumulator = ", accumulator)
 print("mailBase = ", mailBase)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# create basic functions for handling mis-feeds/jams
+
+# (purge accumulator out into the mailBase -- for use if accumulator double-feeds)
+def purge_accumulator():
+    pass
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 
