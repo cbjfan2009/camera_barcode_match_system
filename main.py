@@ -41,6 +41,8 @@ from pyueye import ueye
 from pyzbar.pyzbar import decode as qrDecode
 from pylibdmtx.pylibdmtx import decode as dmDecode
 import pytesseract
+import tkinter as tk
+import tkinter.ttk as ttk
 
 # Mention the installed location of Tesseract-OCR in your system
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
@@ -59,6 +61,24 @@ m_nColorMode = ueye.INT()  # Y8/RGB16/RGB24/REG32
 bytes_per_pixel = int(nBitsPerPixel / 8)
 
 # ------------------------------------------------------------------------------------------------------------------
+window = tk.Tk()
+greeting = tk.Label(text="Welcome to Camera Match \n Please select which way you'd like to match.",
+                     foreground="white",  # Set the text color to white
+                     background="#34A2FE",  # Set the background color to light blue
+                     width=40,
+                     height=10)
+greeting.pack()
+
+button = tk.Button(
+    text="Click me!",
+    width=25,
+    height=5,
+    bg="blue",
+    fg="yellow")
+button.pack()
+window.mainloop()
+
+
 print("START \n")
 
 # Starts the driver and establishes the connection to the camera
@@ -176,11 +196,61 @@ print("mailBase = ", mailBase)
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# create basic functions for handling mis-feeds/jams
+# add decoded content to the accumulator--regardless of method to decode
+# if decodeContent not in accumulator:
+def add_to_accumulator_queue(decoded_content):
+    if len(accumulator) <= 3:
+        if decoded_content not in accumulator:
+            accumulator.append(decoded_content)
+            print('Mailstar Base still empty; accumulator queue: ', accumulator)
+    else:
+        if decoded_content not in accumulator:
+            accum_dump = accumulator.pop(0)
+            accumulator.append(decoded_content)
+            print('Accumulator Queue: ', accumulator)
+
+            if len(mailBase) <= 14:
+                mailBase.append(accum_dump)
+                print('Mailstar Base Queue: ', mailBase, '\n')
+            else:
+                mailBase.pop(0)  # this is where the check for match occurs
+                mailBase.append(accum_dump)
+                print(mailBase, '\n next scan \n')
+
+
+# functions for handling mis-feeds/jams
 
 # (purge accumulator out into the mailBase -- for use if accumulator double-feeds)
 def purge_accumulator():
     pass
+
+
+# adding bounding box around the scanned barcode and human-readable content
+def human_readability(image):
+    for barcode in image:
+        (x, y, w, h) = barcode.rect
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 5)
+
+        # show what the barcode reads by extracting the byte string literal and 'decoding' to str
+        decode_data = barcode.data.decode("utf-8")
+
+        # font for overlay
+        font = cv2.FONT_HERSHEY_PLAIN
+
+        # origin of overlay
+        org = (x, y + h + 70)
+
+        # fontScale
+        fontScale = 3
+
+        # Red color in BGR
+        color = (0, 0, 255)
+
+        # Line thickness of 2 px
+        thickness = 2
+
+        # Using cv2.putText() method
+        cv2.putText(frame, decode_data, org, font, fontScale, color, thickness, cv2.LINE_AA)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
