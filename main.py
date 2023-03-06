@@ -38,7 +38,8 @@ import cv2
 import numpy as np
 # Libraries
 from pyueye import ueye
-from pyzbar.pyzbar import decode
+from pyzbar.pyzbar import decode as qrDecode
+from pylibdmtx.pylibdmtx import decode as dmDecode
 import pytesseract
 
 # Mention the installed location of Tesseract-OCR in your system
@@ -56,6 +57,7 @@ nBitsPerPixel = ueye.INT(24)  # 24: bits per pixel for color mode; take 8 bits p
 channels = 3  # 3: channels for color mode(RGB); take 1 channel for monochrome
 m_nColorMode = ueye.INT()  # Y8/RGB16/RGB24/REG32
 bytes_per_pixel = int(nBitsPerPixel / 8)
+
 # ------------------------------------------------------------------------------------------------------------------
 print("START \n")
 
@@ -138,8 +140,6 @@ print("Maximum image width:\t", width)
 print("Maximum image height:\t", height)
 print()
 
-# ---------------------------------------------------------------------------------------------------------------------
-
 '''Allocates an image memory for an image having its dimensions defined by width and height
   and its color depth defined by nBitsPerPixel'''
 
@@ -207,7 +207,7 @@ while nRet == ueye.IS_SUCCESS:
     # ---------------------------------------------------------------------------------------------------------------------
     # Include image data processing here
 
-    processed_image = decode(frame)
+    processed_image = qrDecode(frame)
 
     # adding bounding box around the scanned barcode and human-readable content
     for barcode in processed_image:
@@ -215,7 +215,7 @@ while nRet == ueye.IS_SUCCESS:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 5)
 
         # show what the barcode reads by extracting the byte string literal and 'decoding' to str
-        decodeContent = barcode.data.decode("utf-8")
+        decodeQRContent = barcode.data.decode("utf-8")
 
         # font for overlay
         font = cv2.FONT_HERSHEY_PLAIN
@@ -233,7 +233,7 @@ while nRet == ueye.IS_SUCCESS:
         thickness = 2
 
         # Using cv2.putText() method
-        cv2.putText(frame, decodeContent, org, font, fontScale, color, thickness, cv2.LINE_AA)
+        cv2.putText(frame, decodeQRContent, org, font, fontScale, color, thickness, cv2.LINE_AA)
 
         '''# while scanning for barcodes, if new barcode is detected, place it in list; when next code is scanned, move 
         all previously scanned one index position
@@ -242,13 +242,13 @@ while nRet == ueye.IS_SUCCESS:
 
         # if decodeContent not in accumulator:
         if len(accumulator) <= 3:
-            if decodeContent not in accumulator:
-                accumulator.append(decodeContent)
+            if decodeQRContent not in accumulator:
+                accumulator.append(decodeQRContent)
                 print('Mailstar Base still empty; accumulator queue: ', accumulator)
         else:
-            if decodeContent not in accumulator:
+            if decodeQRContent not in accumulator:
                 accum_dump = accumulator.pop(0)
-                accumulator.append(decodeContent)
+                accumulator.append(decodeQRContent)
                 print('Accumulator Queue: ', accumulator)
 
                 if len(mailBase) <= 14:
@@ -259,8 +259,19 @@ while nRet == ueye.IS_SUCCESS:
                     mailBase.append(accum_dump)
                     print(mailBase, '\n next scan \n')
 
-    ocr_text = pytesseract.image_to_string(frame)
-    # print(ocr_text)  # anything tesseract detects gets printed!
+    '''# Datamatrix decoding
+
+    dataMatrixDecode = dmDecode(frame)
+    for b in dataMatrixDecode:
+        dmDecodedContent = b.data.decode("utf-8")
+        if dmDecodedContent not in accumulator:
+            accumulator.append(dmDecodedContent)
+    print(accumulator)'''
+
+
+    '''# TESSERACT DECODING -- WAAAAY SLOWER PROCESSING!  output framerate drops heavily.
+    # ocr_text = pytesseract.image_to_string(frame)
+    # print(ocr_text)  # anything tesseract detects gets printed!'''
 
 
     # ---------------------------------------------------------------------------------------------------------------------
