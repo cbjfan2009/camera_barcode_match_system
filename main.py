@@ -42,12 +42,12 @@ from pyzbar.pyzbar import decode as qrDecode
 from pylibdmtx.pylibdmtx import decode as dmDecode
 import pytesseract
 import tkinter as tk
-import tkinter.ttk as ttk
+from tkinter import messagebox
 
 # Mention the installed location of Tesseract-OCR in your system
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
-# Variables
+# Camera Variables -- this setup supplied by IDS for their Ueye X-series camera
 hCam = ueye.HIDS(0)  # 0: first available camera;  1-254: The camera with the specified camera ID
 sInfo = ueye.SENSORINFO()
 cInfo = ueye.CAMINFO()
@@ -60,26 +60,72 @@ channels = 3  # 3: channels for color mode(RGB); take 1 channel for monochrome
 m_nColorMode = ueye.INT()  # Y8/RGB16/RGB24/REG32
 bytes_per_pixel = int(nBitsPerPixel / 8)
 
+op_mode = []  # dictates which decode method will be applied while running
+
 # ------------------------------------------------------------------------------------------------------------------
+# TKinter GUI structure
 window = tk.Tk()
 greeting = tk.Label(text="Welcome to Camera Match \n Please select which way you'd like to match.",
-                     foreground="white",  # Set the text color to white
-                     background="#34A2FE",  # Set the background color to light blue
-                     width=40,
-                     height=10)
-greeting.pack()
+                    foreground="white",  # Set the text color to white
+                    background="#34A2FE",  # Set the background color to light blue
+                    width=125,
+                    height=5).pack()
 
-button = tk.Button(
-    text="Click me!",
-    width=25,
+
+def qr_run_button():
+    messagebox.showinfo("Selection Window", "QR Mode Selected!")
+    op_mode.append('qrDecode()')
+    window.destroy()
+
+
+def dm_run_button():
+    messagebox.showinfo("Selection Window", "DataMatrix Mode Selected!")
+    op_mode.append('dmDecode()')
+    window.destroy()
+
+
+def ocr_run_button():
+    messagebox.showinfo("Selection Window", "OCR Mode Selected!")
+    op_mode.append('pytesseract.image_to_string(frame)')
+    window.destroy()
+
+# I need to fix the binding of the buttons. Append isn't working
+btn_qrscan = tk.Button(
+    master=window,
+    text="Click here for QR Scanning",
+    command=qr_run_button,
+    width=35,
     height=5,
     bg="blue",
-    fg="yellow")
-button.pack()
+    fg="yellow",
+    relief=tk.RAISED,
+    borderwidth=5).pack()
+btn_dmscan = tk.Button(
+    master=window,
+    text="Click here for DataMatrix Scanning",
+    command=dm_run_button,
+    width=35,
+    height=5,
+    bg="blue",
+    fg="yellow",
+    relief=tk.RAISED,
+    borderwidth=5).pack()
+btn_ocrscan = tk.Button(
+    master=window,
+    text="Click here for \n Optical Character Recognition Scanning",
+    command=ocr_run_button,
+    width=35,
+    height=5,
+    bg="blue",
+    fg="yellow",
+    relief=tk.RAISED,
+    borderwidth=5).pack()
+
+
 window.mainloop()
 
-
 print("START \n")
+print(op_mode[0])
 
 # Starts the driver and establishes the connection to the camera
 nRet = ueye.is_InitCamera(hCam, None)
@@ -250,7 +296,8 @@ def human_readability(image):
         thickness = 2
 
         # Using cv2.putText() method
-        cv2.putText(frame, decode_data, org, font, fontScale, color, thickness, cv2.LINE_AA)
+        cv2.putText(frame, decode_data, org, font, fontScale, color, thickness)
+        cv2.putText(frame, "Press Q to Quit", (50, 50), font, int(2), 'red', thickness)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -303,7 +350,8 @@ while nRet == ueye.IS_SUCCESS:
         thickness = 2
 
         # Using cv2.putText() method
-        cv2.putText(frame, decodeQRContent, org, font, fontScale, color, thickness, cv2.LINE_AA)
+        cv2.putText(frame, decodeQRContent, org, font, fontScale, color, thickness)
+        cv2.putText(frame, "Press Q to Quit", (50, 50), font, int(2), color,  thickness)
 
         '''# while scanning for barcodes, if new barcode is detected, place it in list; when next code is scanned, move 
         all previously scanned one index position
@@ -338,16 +386,14 @@ while nRet == ueye.IS_SUCCESS:
             accumulator.append(dmDecodedContent)
     print(accumulator)'''
 
-
     '''# TESSERACT DECODING -- WAAAAY SLOWER PROCESSING!  output framerate drops heavily.
     # ocr_text = pytesseract.image_to_string(frame)
     # print(ocr_text)  # anything tesseract detects gets printed!'''
 
-
     # ---------------------------------------------------------------------------------------------------------------------
 
     # ...and finally display it
-    cv2.imshow("SimpleLive_Python_uEye_OpenCV", frame)
+    cv2.imshow("Press Q to Quit", frame)
 
     # Press q if you want to end the loop
     if cv2.waitKey(1) & 0xFF == ord('q'):
