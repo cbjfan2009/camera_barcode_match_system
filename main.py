@@ -1,39 +1,3 @@
-"""# ===========================================================================#
-#                                                                           #
-#  Copyright (C) 2006 - 2018                                                #
-#  IDS Imaging Development Systems GmbH                                     #
-#  Dimbacher Str. 6-8                                                       #
-#  D-74182 Obersulm, Germany                                                #
-#                                                                           #
-#  The information in this document is subject to change without notice     #
-#  and should not be construed as a commitment by IDS Imaging Development   #
-#  Systems GmbH. IDS Imaging Development Systems GmbH does not assume any   #
-#  responsibility for any errors that may appear in this document.          #
-#                                                                           #
-#  This document, or source code, is provided solely as an example          #
-#  of how to utilize IDS software libraries in a sample application.        #
-#  IDS Imaging Development Systems GmbH does not assume any responsibility  #
-#  for the use or reliability of any portion of this document or the        #
-#  described software.                                                      #
-#                                                                           #
-#  General permission to copy or modify, but not for profit, is hereby      #
-#  granted, provided that the above copyright notice is included and        #
-#  reference made to the fact that reproduction privileges were granted     #
-#  by IDS Imaging Development Systems GmbH.                                 #
-#                                                                           #
-#  IDS Imaging Development Systems GmbH cannot assume any responsibility    #
-#  for the use or misuse of any portion of this software for other than     #
-#  its intended diagnostic purpose in calibrating and testing IDS           #
-#  manufactured cameras and software.                                       #
-#                                                                           #
-#===========================================================================#
-
-# Developer Note: I tried to let it as simple as possible.
-# Therefore there are no functions asking for the newest driver software or freeing memory beforehand, etc.
-# The sole purpose of this program is to show one of the simplest ways to interact with an IDS camera via the uEye API.
-# (XS cameras are not supported)
-#-------------------------------------------------------------------------------------------------------------------"""
-
 import cv2
 import numpy as np
 # Libraries
@@ -65,11 +29,12 @@ op_mode = []  # dictates which decode method will be applied while running
 # ------------------------------------------------------------------------------------------------------------------
 # TKinter GUI structure
 window = tk.Tk()
-greeting = tk.Label(text="Welcome to Camera Match \n Please select which way you'd like to match.",
+greeting = tk.Label(text="Welcome to Camera Match. \n Please select which decoding method to use.",
                     foreground="white",  # Set the text color to white
                     background="#34A2FE",  # Set the background color to light blue
-                    width=125,
-                    height=5).pack()
+                    width=50,
+                    height=5,
+                    font=("Arial", 25)).pack()
 
 
 def qr_run_button():
@@ -99,7 +64,8 @@ btn_qrscan = tk.Button(
     bg="blue",
     fg="yellow",
     relief=tk.RAISED,
-    borderwidth=5).pack()
+    borderwidth=5,
+    font=("Arial", 15)).pack()
 btn_dmscan = tk.Button(
     master=window,
     text="Click here for DataMatrix Scanning",
@@ -109,7 +75,8 @@ btn_dmscan = tk.Button(
     bg="blue",
     fg="yellow",
     relief=tk.RAISED,
-    borderwidth=5).pack()
+    borderwidth=5,
+    font=("Arial", 15)).pack()
 btn_ocrscan = tk.Button(
     master=window,
     text="Click here for \n Optical Character Recognition Scanning",
@@ -119,7 +86,8 @@ btn_ocrscan = tk.Button(
     bg="blue",
     fg="yellow",
     relief=tk.RAISED,
-    borderwidth=5).pack()
+    borderwidth=5,
+    font=("Arial", 15)).pack()
 
 
 window.mainloop()
@@ -196,6 +164,16 @@ nRet = ueye.is_AOI(hCam, ueye.IS_AOI_IMAGE_GET_AOI, rectAOI, ueye.sizeof(rectAOI
 if nRet != ueye.IS_SUCCESS:
     print("is_AOI ERROR")
 
+'''define the length of time: time_exposure_,
+    make it into a c API accessible double,
+    call the ueye command (IS_EXPOSURE...) using the double, and tell the camera 
+    how many bites the double is (sizeof...) --requirement of c?
+    '''
+time_exposure_ = 1.5  # I think this is in milliseconds?
+
+time_exposure = ueye.double(time_exposure_)
+nRet = ueye.is_Exposure(hCam, ueye.IS_EXPOSURE_CMD_SET_EXPOSURE, time_exposure, ueye.sizeof(time_exposure))
+
 width = rectAOI.s32Width
 height = rectAOI.s32Height
 
@@ -242,65 +220,6 @@ print("mailBase = ", mailBase)
 
 
 # --------------------------------------------------------------------------------------------------------------------
-# add decoded content to the accumulator--regardless of method to decode
-# if decodeContent not in accumulator:
-def add_to_accumulator_queue(decoded_content):
-    if len(accumulator) <= 3:
-        if decoded_content not in accumulator:
-            accumulator.append(decoded_content)
-            print('Mailstar Base still empty; accumulator queue: ', accumulator)
-    else:
-        if decoded_content not in accumulator:
-            accum_dump = accumulator.pop(0)
-            accumulator.append(decoded_content)
-            print('Accumulator Queue: ', accumulator)
-
-            if len(mailBase) <= 14:
-                mailBase.append(accum_dump)
-                print('Mailstar Base Queue: ', mailBase, '\n')
-            else:
-                mailBase.pop(0)  # this is where the check for match occurs
-                mailBase.append(accum_dump)
-                print(mailBase, '\n next scan \n')
-
-
-# functions for handling mis-feeds/jams
-
-# (purge accumulator out into the mailBase -- for use if accumulator double-feeds)
-def purge_accumulator():
-    pass
-
-
-# adding bounding box around the scanned barcode and human-readable content
-def human_readability(image):
-    for barcode in image:
-        (x, y, w, h) = barcode.rect
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 5)
-
-        # show what the barcode reads by extracting the byte string literal and 'decoding' to str
-        decode_data = barcode.data.decode("utf-8")
-
-        # font for overlay
-        font = cv2.FONT_HERSHEY_PLAIN
-
-        # origin of overlay
-        org = (x, y + h + 70)
-
-        # fontScale
-        fontScale = 3
-
-        # Red color in BGR
-        color = (0, 0, 255)
-
-        # Line thickness of 2 px
-        thickness = 2
-
-        # Using cv2.putText() method
-        cv2.putText(frame, decode_data, org, font, fontScale, color, thickness)
-        cv2.putText(frame, "Press Q to Quit", (50, 50), font, int(2), 'red', thickness)
-
-
-# ---------------------------------------------------------------------------------------------------------------------
 
 # Continuous image display
 while nRet == ueye.IS_SUCCESS:
@@ -312,10 +231,7 @@ while nRet == ueye.IS_SUCCESS:
 
     # ...reshape it in an numpy array...
     frame = np.reshape(array, (height.value, width.value, bytes_per_pixel))
-    image4tesseract = frame.copy()
-
-    # ...resize the image by a half
-    frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+    #image4tesseract = frame.copy()
 
     # ...double the image size
     # frame = cv2.resize(frame, (0, 0), fx=2, fy=2)
@@ -351,12 +267,11 @@ while nRet == ueye.IS_SUCCESS:
 
         # Using cv2.putText() method
         cv2.putText(frame, decodeQRContent, org, font, fontScale, color, thickness)
-        cv2.putText(frame, "Press Q to Quit", (50, 50), font, int(2), color,  thickness)
 
         '''# while scanning for barcodes, if new barcode is detected, place it in list; when next code is scanned, move 
         all previously scanned one index position
 
-        # Inserter and feeder index assignment -- might need to incorporate laser barcode scanner for upstream??--'''
+        # Inserter and feeder index assignment --  need to incorporate laser barcode scanner or camera for upstream??--'''
 
         # if decodeContent not in accumulator:
         if len(accumulator) <= 3:
@@ -377,9 +292,9 @@ while nRet == ueye.IS_SUCCESS:
                     mailBase.append(accum_dump)
                     print(mailBase, '\n next scan \n')
 
-    '''# Datamatrix decoding
+    # Datamatrix decoding
 
-    dataMatrixDecode = dmDecode(frame)
+    '''dataMatrixDecode = dmDecode(frame, max_count=1)
     for b in dataMatrixDecode:
         dmDecodedContent = b.data.decode("utf-8")
         if dmDecodedContent not in accumulator:

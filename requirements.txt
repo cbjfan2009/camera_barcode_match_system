@@ -5,3 +5,12 @@ pyueye==4.96.952
 pyzbar==0.1.9
 
 pytesseract~=0.3.10
+
+altgraph==0.17.3
+enum-compat==0.0.3
+packaging==23.0
+pefile==2023.2.7
+Pillow==9.4.0
+
+pywin32-ctypes==0.2.0
+
